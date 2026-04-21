@@ -1,0 +1,59 @@
+version: "1.0"
+orchestrator:
+  prompts_dir: _Settings_/Prompts
+  tasks_dir: _Settings_/Tasks
+  logs_dir: _Settings_/Logs
+  skills_dir: .claude/skills
+  bases_dir: _Settings_/Bases
+  chat_history_dir: _Settings_/History
+  ambient_recording_dir: _Settings_/History/Ambient
+  system_prompt_file: _Settings_/Prompts/Real-time Voice Assistant (RVA).md
+  max_concurrent: 3
+  poll_interval: 1
+  file_extensions:
+    - .md
+    - .pdf
+    - .docx
+    - .doc
+    - .txt
+    - .epub
+defaults:
+  executor: claude_code
+  timeout_minutes: 30
+  max_parallel: 3
+  task_create: true
+  task_priority: medium
+  task_archived: false
+nodes:
+  - type: agent
+    name: Enrich Ingested Content (EIC)
+    input_path: Ingest/Clippings
+    output_path: AI/Summary
+    output_type: new_file
+  - type: agent
+    name: Extract Document to Markdown (EDM)
+    input_path: Ingest/Documents
+    output_path: AI/Summary
+    executor: claude_code
+    input_type: new_file
+    input_pattern: "*.pdf|*.docx|*.doc|*.txt|*.epub"
+    trigger_exclude_pattern: "*.md"
+    output_naming: "{title}.md"
+    enabled: true
+  - type: agent
+    name: Generate Daily Roundup (GDR)
+    cron: 0 4 * * *
+    output_path: AI/Roundup
+  - type: agent
+    name: Topic Index Update (TIU)
+    cron: 30 4 * * *
+    input_path: AI/Roundup
+    output_path: Topics
+  - type: agent
+    name: Daily Research Briefing (DRB)
+    cron: 0 5 * * *
+    input_path: Topics
+    output_path: AI/Briefing
+    prompt: "Generate a summary of latest AI trends and PM efficiency tips based on gathered research."
+id: ai4pkm_vault
+name: ai4pkm_vault
